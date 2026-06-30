@@ -1,0 +1,4 @@
+# dash server. Pins: minor-genau, damit Builds reproduzierbar bleiben.
+fastapi>=0.115,<0.116
+uvicorn[standard]>=0.34,<0.35
+soco>=0.30,<0.31
