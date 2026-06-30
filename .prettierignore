@@ -1,0 +1,8 @@
+web/vendor/
+reference/
+node_modules/
+package-lock.json
+.venv/
+
+# Markdown ist autorierte Prosa (Specs/ADRs) — nicht maschinell umformatieren.
+**/*.md

@@ -1,0 +1,33 @@
+{
+  "extends": "stylelint-config-standard",
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      ["color", "background-color", "border-color", "outline-color", "fill", "stroke"],
+      {
+        "ignoreValues": ["currentColor", "transparent", "inherit", "initial", "unset", "none"],
+        "disableFix": true,
+        "message": "Farbe nur via Skin-Token: var(--…). Magic-Color verboten (ADR-0007)."
+      }
+    ],
+    "declaration-property-value-disallowed-list": [
+      { "/.+/": ["/\\d+px/", "/\\d+rem/", "/\\d+em/", "/\\bclamp\\(/"] },
+      {
+        "message": "Magic-Number (px/rem/em/clamp) nur in web/tokens/. In Primitiven/Komponenten ausschließlich var(--token) nutzen — intrinsische Einheiten (%, fr, dvh, vw) sind ok (Verfassung §2, ADR-0007).",
+        "severity": "error"
+      }
+    ],
+    "custom-property-pattern": null,
+    "selector-class-pattern": null
+  },
+  "overrides": [
+    {
+      "files": ["web/tokens/**/*.css"],
+      "rules": {
+        "scale-unlimited/declaration-strict-value": null,
+        "declaration-property-value-disallowed-list": null
+      }
+    }
+  ],
+  "ignoreFiles": ["web/vendor/**", "reference/**", "node_modules/**"]
+}
