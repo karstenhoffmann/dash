@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sonos — Now Playing</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app" class="app"></main>
+<div id="toast" class="toast"></div>
+<script>
+const app = document.getElementById('app');
+let state = { ok:true, groups:[] };
+let activeId = null;
+let view = 'now';            // 'now' (Hub) | 'quellen' (Spoke). Räume/Szenen folgen.
+let sources = null;          // Favoriten-Cache (kontoweit); lazy beim Öffnen geladen
+let sourcesErr = null;
+let sourcesLoading = false;
+let pending = null;          // {room,name,since} während ein getippter Favorit puffert
+let playedArt = {};          // room → Logo der zuletzt gestarteten Quelle (Cover-Fallback bei Radio ohne Track-Bild)
+function isLandscape(){ return !!(window.matchMedia && window.matchMedia('(orientation: landscape)').matches); }
+function pageSources(){ return isLandscape() ? 12 : 9; }   // 6×2 quer / 3×3 hoch — passend zur CSS-Spaltenzahl
+let scenes = null;           // Szenen-Cache (aus scenes.json); lazy geladen
+let scenesErr = null;
+let scenesLoading = false;
+let sceneNameDraft = '';     // Name-Eingabe im Verwalten-Overlay (überlebt repaint)
+const openOverlays = {};
+const OVERLAY_VARIANT = 'sheet-top';  // Default-Präsentation ALLER Overlays — hier zentral ändern (sheet-top | sheet-bottom | modal)
+
+const ICONS = {
+  'skip-back':'<polygon points="19 20 9 12 19 4" fill="currentColor" stroke="none"/><line x1="5" x2="5" y1="19" y2="5"/>',
+  'play':'<polygon points="6 3 20 12 6 21" fill="currentColor" stroke="none"/>',
+  'pause':'<rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor" stroke="none"/>',
+  'skip-forward':'<polygon points="5 4 15 12 5 20" fill="currentColor" stroke="none"/><line x1="19" x2="19" y1="5" y2="19"/>',
+  'minus':'<line x1="5" x2="19" y1="12" y2="12"/>',
+  'plus':'<line x1="5" x2="19" y1="12" y2="12"/><line x1="12" x2="12" y1="5" y2="19"/>',
+  'volume-2':'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19" fill="currentColor" stroke="none"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  'volume-x':'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19" fill="currentColor" stroke="none"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
+  'chevron-down':'<polyline points="6 9 12 15 18 9"/>',
+  'chevron-up':'<polyline points="18 15 12 9 6 15"/>',
+  'chevron-left':'<polyline points="15 18 9 12 15 6"/>',
+  'chevron-right':'<polyline points="9 18 15 12 9 6"/>',
+  'music':'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  'home':'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  'group':'<rect width="13" height="13" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  'x':'<line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>',
+  'dot':'<circle cx="12" cy="12" r="9"/>',
+  'dot-filled':'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>'
+};
+function icon(name, size){
+  size = size || 28;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block">${ICONS[name]||''}</svg>`;
+}
+const FALL_LG = `<div class="cover-lg">${icon('music',56)}</div>`;
+const SRC_FALL = icon('music',32);  // Fallback-Cover für Quellen-Kacheln
+
+// Gestufter Segment-Spinner (e-ink-freundlich): dunkler Kopf + Graustufen-Schweif,
+// rotiert diskret via CSS steps() — keine smooth-Animation, keine Gradients.
+function spinner(size){
+  size = size || 64;
+  const op = [1,.82,.66,.5,.36,.24,.15,.09];   // Kopf voll, Schweif verblassend (8 Speichen)
+  let spokes = '';
+  for(let k=0;k<8;k++){
+    spokes += `<rect x="11" y="2.5" width="2" height="5.5" rx="1" fill="currentColor" opacity="${op[k]}" transform="rotate(${k*45} 12 12)"/>`;
+  }
+  return `<span class="spinner" style="width:${size}px;height:${size}px" role="status" aria-label="Lädt">` +
+    `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="display:block">${spokes}</svg></span>`;
+}
+
+const clock = () => new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(path, method='GET', body){
+  try {
+    const opt = { method };
+    if(body !== undefined){ opt.headers = {'Content-Type':'application/json'}; opt.body = JSON.stringify(body); }
+    const r = await fetch(path, opt);
+    return await r.json();
+  } catch(e){ console.error('[api]', method, path, e.message || e); return { ok:false, error:'net' }; }
+}
+
+function activeGroup(){
+  if(!state.groups.length) return null;
+  let g = state.groups.find(x => x.id === activeId);
+  if(!g){ g = state.groups.find(x => x.state !== 'idle') || state.groups[0]; activeId = g.id; }
+  return g;
+}
+
+function segs(vol){
+  const steps = 20, filled = Math.round(vol/100*steps);
+  let h = '';
+  for(let i=0;i<steps;i++){
+    const on = i < filled;
+    h += `<span class="segbar__seg" style="background:${on?'var(--ink)':'var(--paper)'};border:1px solid ${on?'var(--ink)':'var(--line-soft)'}"></span>`;
+  }
+  return h;
+}
+
+function stateScreen(big, sub, extra=''){
+  return `<div class="state"><div class="state__big">${big}</div>${sub?`<div>${sub}</div>`:''}${extra}</div>`;
+}
+
+function render(){
+  if(!state.ok){
+    app.innerHTML = stateScreen('Nicht erreichbar', 'Das Backend antwortet nicht.',
+      `<button class="btn btn--text" onclick="refresh()">Erneut versuchen</button>`);
+    return;
+  }
+  const g = activeGroup();
+  if(!g){
+    app.innerHTML = stateScreen('Keine Sonos gefunden', '',
+      `<button class="btn btn--text" onclick="refresh()">Erneut versuchen</button>`);
+    return;
+  }
+  const buffering = !!(pending && pending.room === g.id);
+  const playing = g.state === 'playing' || buffering;
+  const has = g.state === 'playing' || g.state === 'paused';   // pausiert bleibt bedienbar (nicht „Nichts läuft")
+  const multi = g.members.length > 1;
+
+  const titleEl = (view === 'raeume' || view === 'szenen')
+    ? `<span class="appbar__title appbar__title--static">${view === 'raeume' ? 'Räume &amp; Gruppen' : 'Szenen'}</span>`
+    : `<button class="appbar__title" onclick="openGroupSwitcher()"><span>${esc(g.name)}</span>${icon('chevron-down',20)}</button>`;
+  const header = `<header class="appbar">
+    <div class="appbar__left">
+      ${view !== 'now' ? `<button class="appbar__home" onclick="go('now')" aria-label="Start">${icon('home',26)}</button>` : ''}
+      ${titleEl}
+    </div>
+    <span class="appbar__clock">${clock()}</span>
+  </header>`;
+
+  let stageContent;
+  if(view === 'raeume'){
+    stageContent = raeumeContent();
+  } else if(view === 'szenen'){
+    stageContent = szenenContent();
+  } else if(view === 'quellen'){
+    stageContent = quellenContent();
+  } else if(has || buffering){
+    const artUrl = g.now.artUrl || playedArt[g.id] || '';   // Track-Bild, sonst Senderlogo der gestarteten Quelle
+    const cover = buffering
+      ? `<div class="cover-lg">${spinner(80)}</div>`
+      : (artUrl
+          ? `<img class="cover-lg" src="${esc(artUrl)}" onerror="this.outerHTML=FALL_LG">`
+          : FALL_LG);
+    const title = buffering ? esc(pending.name) : esc(g.now.title || '…');
+    const sub = buffering ? 'Verbinde …' : esc([g.now.artist, g.now.album].filter(Boolean).join(' · '));
+    stageContent = `
+      ${cover}
+      <div class="np-main">
+        <div class="np-hero__text">
+          <div class="np-hero__title">${title}</div>
+          <div class="np-hero__sub">${sub}</div>
+        </div>
+        <section class="controls">
+          <div class="transport">
+            <button class="btn iconbtn iconbtn--lg" onclick="act('previous')" aria-label="Zurück">${icon('skip-back',36)}</button>
+            <button class="btn btn--primary iconbtn iconbtn--xl" onclick="toggle()" aria-label="${playing?'Pause':'Play'}">${icon(playing?'pause':'play',48)}</button>
+            <button class="btn iconbtn iconbtn--lg" onclick="act('next')" aria-label="Weiter">${icon('skip-forward',36)}</button>
+          </div>
+          <div class="volsec">
+            <div class="section-label"><span>${multi ? 'Gruppe' : esc(g.members[0].name)}</span><b>${g.volume}%</b></div>
+            <div class="volume" id="volrow">
+              <button class="btn iconbtn" onclick="nudge(-5)" aria-label="Leiser">${icon('minus',32)}</button>
+              <button class="segbar" id="bar" onclick="barTap(event)" aria-label="Lautstärke setzen">${segs(g.volume)}</button>
+              <button class="btn iconbtn" onclick="nudge(5)" aria-label="Lauter">${icon('plus',32)}</button>
+              ${multi ? `<button class="btn iconbtn" onclick="openRooms()" aria-label="Einzelne Lautstärken">${icon('chevron-up',30)}</button>` : ''}
+            </div>
+          </div>
+        </section>
+      </div>`;
+  } else {
+    stageContent = stateScreen('Nichts läuft', 'Wähle eine Quelle oder eine Szene.',
+      `<div class="state__row">
+        <button class="btn btn--text" onclick="go('quellen')">Quellen</button>
+        <button class="btn btn--text" onclick="go('szenen')">Szenen</button></div>`);
+  }
+
+  const tab = (v, label) => `<button class="tab ${view===v?'is-active':''}" onclick="go('${v}')">${label}</button>`;
+  const nav = `<nav class="tabbar">${tab('raeume','Räume')}${tab('quellen','Quellen')}${tab('szenen','Szenen')}</nav>`;
+
+  app.innerHTML = header + `<div class="stage">${stageContent}</div>` + nav;
+  repaintOverlays();
+}
+
+/* ---- Overlay-Primitive: eine Quelle der Wahrheit für ALLE Overlays.
+   Präsentation via OVERLAY_VARIANT zentral; einzelne dürfen mit { variant } bewusst abweichen. ---- */
+function openOverlay({ id, title, render, variant, anchor, noRepaint }){
+  closeOverlay(id);
+  const ov = document.createElement('div');
+  ov.className = `overlay overlay--${variant || OVERLAY_VARIANT}`; ov.id = id;
+  ov.onclick = e => { if(e.target === ov) closeOverlay(id); };
+  document.body.appendChild(ov);
+  openOverlays[id] = { title, render, anchor, noRepaint };
+  paintOverlay(id);
+}
+function paintOverlay(id){
+  const ov = document.getElementById(id), cfg = openOverlays[id];
+  if(!ov || !cfg) return;
+  ov.innerHTML = `<div class="overlay__panel">
+    <div class="overlay__head"><span>${cfg.title}</span><button class="overlay__close" onclick="closeOverlay('${id}')" aria-label="Schließen">${icon('x',22)}</button></div>
+    ${cfg.render()}</div>`;
+  positionOverlay(id);
+}
+function positionOverlay(id){
+  const ov = document.getElementById(id), cfg = openOverlays[id];
+  if(!ov || !cfg || !cfg.anchor) return;
+  const panel = ov.querySelector('.overlay__panel'), a = document.querySelector(cfg.anchor);
+  if(!panel || !a) return;
+  const r = a.getBoundingClientRect();
+  panel.style.top = ''; panel.style.bottom = '';
+  if(ov.classList.contains('overlay--popover-top')) panel.style.top = (r.bottom + 6) + 'px';
+  else if(ov.classList.contains('overlay--popover-bottom')) panel.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+}
+function closeOverlay(id){ const s = document.getElementById(id); if(s) s.remove(); delete openOverlays[id]; }
+function repaintOverlays(){ for(const id in openOverlays) if(!openOverlays[id].noRepaint) paintOverlay(id); }
+window.addEventListener('resize', repaintOverlays);
+
+function openGroupSwitcher(){
+  openOverlay({ id:'switcher', title:'Gruppe wählen', variant:'popover-top', anchor:'.appbar', render: () =>
+    state.groups.map(g => {
+      const cur = g.id === activeId;
+      const active = g.state === 'playing' || g.state === 'paused';
+      const st = g.state === 'playing' ? icon('volume-2',20) : g.state === 'paused' ? icon('pause',20) : '';
+      const sub = active ? [g.now.title, g.now.artist].filter(Boolean).join(' — ') : '';
+      return `<button class="overlay__item ${cur?'is-current':''}" onclick="pickGroup('${g.id}')">` +
+        `${cur?icon('dot-filled',20):icon('dot',20)}` +
+        `<span class="ov-main"><span class="ov-name">${esc(g.name)}</span>` +
+        `${sub ? `<span class="ov-sub">${esc(sub)}</span>` : ''}</span>` +
+        `<span class="ov-status" aria-label="${g.state==='playing'?'spielt':g.state==='paused'?'pausiert':'nichts'}">${st}</span></button>`;
+    }).join('') });
+}
+function pickGroup(id){ activeId = id; closeOverlay('rooms'); closeOverlay('switcher'); render(); }
+
+/* ---- Räume & Gruppen ---- */
+function allRooms(){
+  const seen = {}, out = [];
+  for(const g of state.groups) for(const m of g.members) if(!seen[m.id]){ seen[m.id] = 1; out.push(m); }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+function raeumeContent(){
+  if(!state.groups.length) return stateScreen('Keine Sonos gefunden', '');
+  const blocks = state.groups.map(g => {
+    const st = g.state === 'playing' ? icon('volume-2',20) : g.state === 'paused' ? icon('pause',20) : '';
+    const active = g.state === 'playing' || g.state === 'paused';
+    const now = active ? esc([g.now.title, g.now.artist].filter(Boolean).join(' — ')) : 'nichts';
+    const chips = g.members.map(m => `<span class="chip">${esc(m.name)}</span>`).join('');
+    return `<div class="grp">` +
+      `<div class="grp__head"><span class="grp__name">${esc(g.name)}</span>` +
+        `<button class="grp__group" onclick="openGroupEditor('${g.id}')" aria-label="${esc(g.name)} gruppieren">${icon('group',18)}<span>Gruppieren</span></button></div>` +
+      `<div class="grp__chips">${chips}</div>` +
+      `<div class="grp__now">${st}<span class="grp__nowtxt">${now}</span></div></div>`;
+  }).join('');
+  return `<section class="rooms-screen">${blocks}</section>`;
+}
+// Staged-Editor: lokale Auswahl, kein Sonos-Befehl pro Tap. Erst „Übernehmen" wendet den Diff an.
+let editSel = null;   // { groupId, ids:Set<roomId> }
+function openGroupEditor(groupId){
+  const g = state.groups.find(x => x.id === groupId);
+  if(!g) return;
+  editSel = { groupId, ids: new Set(g.members.map(m => m.id)) };
+  openOverlay({ id:'grpedit', title:esc(g.name) + ' — Räume wählen', variant:'sheet-top', render:groupEditorContent });
+}
+function groupEditorContent(){
+  if(!editSel) return '';
+  const groupId = editSel.groupId;
+  const g = state.groups.find(x => x.id === groupId);
+  const current = new Set(g ? g.members.map(m => m.id) : []);
+  const rooms = allRooms();
+  const allOn = rooms.every(r => editSel.ids.has(r.id));
+  const allRow = `<button class="overlay__item ${allOn?'is-current':''}" onclick="toggleEditAll()" aria-label="Alle Räume">` +
+    `${allOn ? icon('dot-filled',22) : icon('dot',22)}<span class="ov-name">Alle Räume</span></button>`;
+  const rows = rooms.map(r => {
+    const inSel = editSel.ids.has(r.id);
+    const anchor = r.id === groupId;   // Koordinator = Anker, bleibt immer drin
+    return `<button class="overlay__item ${inSel?'is-current':''}" ${anchor?'disabled':''} ` +
+      `onclick="toggleEditRoom('${r.id}')" aria-label="${esc(r.name)}">` +
+      `${inSel ? icon('dot-filled',22) : icon('dot',22)}` +
+      `<span class="ov-name">${esc(r.name)}${anchor ? ' · Anker' : ''}</span></button>`;
+  }).join('');
+  // Diff gegen aktuellen Zustand → nur „Übernehmen" anbieten, wenn sich etwas ändert
+  const changed = rooms.some(r => editSel.ids.has(r.id) !== current.has(r.id));
+  const bar = `<div class="editbar">` +
+    `<button class="btn editbar__btn" onclick="closeOverlay('grpedit')">Abbrechen</button>` +
+    `<button class="btn btn--primary editbar__btn" ${changed?'':'disabled'} onclick="applyGroupEdit()">Übernehmen</button></div>`;
+  return allRow + `<div class="ov-divider"></div>` + rows + bar;
+}
+function toggleEditRoom(roomId){
+  if(!editSel || roomId === editSel.groupId) return;       // Anker fix
+  editSel.ids.has(roomId) ? editSel.ids.delete(roomId) : editSel.ids.add(roomId);
+  paintOverlay('grpedit');                                  // nur Overlay neu zeichnen — instant, kein Backend
+}
+function toggleEditAll(){
+  if(!editSel) return;
+  const rooms = allRooms();
+  const allOn = rooms.every(r => editSel.ids.has(r.id));
+  editSel.ids = allOn ? new Set([editSel.groupId]) : new Set(rooms.map(r => r.id));  // alle ⇄ nur Anker
+  paintOverlay('grpedit');
+}
+
+/* ---- Szenen (unsere Schicht: scenes.json) ---- */
+function roomDisplay(slug){
+  for(const g of state.groups) for(const m of g.members) if(m.id === slug) return m.name;
+  return slug;
+}
+async function ensureScenes(force){
+  if(scenesLoading) return;
+  scenesLoading = true; if(force) scenesErr = null;
+  render();
+  const d = await api('/api/scenes');
+  if(d && d.ok && Array.isArray(d.scenes)){ scenes = d.scenes; scenesErr = null; }
+  else { scenes = null; scenesErr = (d && d.error) || 'unerwartete Antwort'; }
+  scenesLoading = false;
+  render();
+}
+function sceneTile(s){
+  const sub = (s.rooms || []).map(roomDisplay).join(' · ');
+  const src = s.source ? `<span class="scene-tile__src">${icon('music',16)}<span>${esc(s.source)}</span></span>` : '';
+  return `<button class="scene-tile" onclick="applyScene('${s.id}')" aria-label="${esc(s.name)} anwenden">` +
+    `<span class="scene-tile__name">${esc(s.name)}</span>` +
+    `<span class="scene-tile__rooms">${esc(sub)}</span>${src}</button>`;
+}
+function szenenContent(){
+  if(scenesLoading) return stateScreen('Lade Szenen …', '', spinner(40));
+  if(scenesErr) return stateScreen('Szenen nicht verfügbar', esc(scenesErr),
+    `<button class="btn btn--text" onclick="ensureScenes(true)">Erneut versuchen</button>`);
+  const tiles = (scenes || []).map(sceneTile).join('');
+  const add = `<button class="scene-tile scene-tile--add" onclick="openScenesManage()" aria-label="Szenen verwalten">` +
+    `${icon('plus',26)}<span class="scene-tile__name">Speichern / Verwalten</span></button>`;
+  return `<div class="scene-grid">${tiles}${add}</div>`;
+}
+async function applyScene(id){
+  const s = (scenes || []).find(x => x.id === id); if(!s) return;
+  toast(`Szene „${s.name}" …`);
+  if(s.rooms && s.rooms.length){
+    activeId = s.rooms[0];                 // Now-Playing auf die neue Konstellation
+    if(s.source){ pending = { room: s.rooms[0], name: s.source, since: Date.now() }; playedArt[s.rooms[0]] = ''; }
+  }
+  view = 'now'; render();
+  const r = await api(`/api/scenes/${id}/apply`, 'POST');
+  if(!r || !r.ok){ console.error('[applyScene]', s.name, '→', r && r.error); toast(`„${s.name}" fehlgeschlagen`); pending = null; render(); }
+  [1500, 3500, 6000].forEach(t => setTimeout(refresh, t));
+}
+function openScenesManage(){
+  sceneNameDraft = '';
+  openOverlay({ id:'scmgr', title:'Szenen verwalten', variant:'sheet-top', noRepaint:true, render:scenesManageContent });
+}
+function scenesManageContent(){
+  const g = activeGroup();
+  const curName = g ? esc(g.name) : '—';
+  const curSrc = (g && g.now && g.now.source) ? ` · ${esc(g.now.source)}` : '';
+  const save = `<div class="scmgr__cap">Aktuelle Gruppe als Szene speichern:<br><b>${curName}</b>${curSrc}</div>` +
+    `<input class="scmgr__input" type="text" placeholder="Name (optional)" value="${esc(sceneNameDraft)}" oninput="sceneNameDraft=this.value">` +
+    `<button class="btn btn--primary scmgr__btn" onclick="saveSceneFromCurrent()">Speichern</button>`;
+  const list = (scenes || []).length
+    ? `<div class="scmgr__list">` + scenes.map(s =>
+        `<div class="scmgr__row"><span class="scmgr__rowname">${esc(s.name)}</span>` +
+        `<button class="iconbtn scmgr__del" onclick="deleteScene('${s.id}')" aria-label="${esc(s.name)} löschen">${icon('x',22)}</button></div>`).join('') + `</div>`
+    : `<div class="scmgr__cap">Noch keine Szenen gespeichert.</div>`;
+  return save + `<div class="ov-divider"></div>` + list;
+}
+async function saveSceneFromCurrent(){
+  const g = activeGroup(); if(!g) return;
+  await api(`/api/${g.id}/savescene`, 'POST', { name: sceneNameDraft.trim() });
+  sceneNameDraft = '';
+  await ensureScenes(true);
+  paintOverlay('scmgr');
+  toast('Szene gespeichert');
+}
+async function deleteScene(id){
+  await api(`/api/scenes/${id}/delete`, 'POST');
+  await ensureScenes(true);
+  paintOverlay('scmgr');
+}
+async function applyGroupEdit(){
+  if(!editSel) return;
+  const { groupId, ids } = editSel;
+  const g = state.groups.find(x => x.id === groupId);
+  const current = new Set(g ? g.members.map(m => m.id) : []);
+  const toRemove = [...current].filter(id => id !== groupId && !ids.has(id));
+  const toAdd    = [...ids].filter(id => !current.has(id));
+  editSel = null; closeOverlay('grpedit');
+  for(const id of toRemove) await api(`/api/${id}/ungroup`, 'POST');     // erst lösen
+  for(const id of toAdd)    await api(`/api/${id}/group/${groupId}`, 'POST'); // dann der Gruppe beitreten
+  setTimeout(refresh, 700);
+}
+
+function curId(){ const g = activeGroup(); return g ? g.id : null; }
+
+async function act(action){
+  const id = curId(); if(!id) return;
+  await api(`/api/${id}/${action}`, 'POST');
+  setTimeout(refresh, 450);
+}
+async function toggle(){
+  const g = activeGroup(); if(!g) return;
+  const action = g.state === 'playing' ? 'pause' : 'play';
+  g.state = g.state === 'playing' ? 'paused' : 'playing';
+  render();
+  await api(`/api/${g.id}/${action}`, 'POST');
+  setTimeout(refresh, 450);
+}
+async function setVol(v){
+  const g = activeGroup(); if(!g) return;
+  v = Math.max(0, Math.min(100, Math.round(v/5)*5));
+  g.volume = v;
+  render();
+  await api(`/api/${g.id}/groupvolume/${v}`, 'POST');
+  setTimeout(refresh, 500);
+}
+function barTap(e){
+  const r = e.currentTarget.getBoundingClientRect();
+  setVol((e.clientX - r.left) / r.width * 100);
+}
+async function nudge(d){
+  const g = activeGroup(); if(!g) return;
+  g.volume = Math.max(0, Math.min(100, g.volume + d));
+  render();
+  await api(`/api/${g.id}/groupnudge/${d}`, 'POST');
+  setTimeout(refresh, 500);
+}
+function openRooms(){ openOverlay({ id:'rooms', title:'Einzelne Lautstärken', variant:'popover-bottom', anchor:'#volrow', render: roomsContent }); }
+function roomsContent(){
+  const g = activeGroup(); if(!g) return '';
+  return g.members.map(m =>
+    `<div class="lvl">` +
+      `<div class="section-label"><span class="lvl__name">${esc(m.name)}</span><b>${m.volume}%</b></div>` +
+      `<div class="volume">` +
+        `<button class="btn iconbtn" onclick="nudgeRoom('${m.id}',-5)" aria-label="${esc(m.name)} leiser">${icon('minus',30)}</button>` +
+        `<button class="segbar segbar--room" onclick="barTapRoom(event,'${m.id}')" aria-label="${esc(m.name)} Lautstärke">${segs(m.volume)}</button>` +
+        `<button class="btn iconbtn" onclick="nudgeRoom('${m.id}',5)" aria-label="${esc(m.name)} lauter">${icon('plus',30)}</button>` +
+      `</div>` +
+    `</div>`).join('');
+}
+async function setRoomVol(roomId, v){
+  const g = activeGroup(); if(!g) return;
+  v = Math.max(0, Math.min(100, Math.round(v/5)*5));
+  const m = g.members.find(x => x.id === roomId); if(m) m.volume = v;
+  render();
+  await api(`/api/${roomId}/volume/${v}`, 'POST');
+  setTimeout(refresh, 600);
+}
+function barTapRoom(e, roomId){
+  const r = e.currentTarget.getBoundingClientRect();
+  setRoomVol(roomId, (e.clientX - r.left) / r.width * 100);
+}
+async function nudgeRoom(roomId, d){
+  const g = activeGroup(); if(!g) return;
+  const m = g.members.find(x => x.id === roomId); if(!m) return;
+  const v = Math.max(0, Math.min(100, m.volume + d));
+  m.volume = v;
+  render();
+  await api(`/api/${roomId}/volume/${v}`, 'POST');
+  setTimeout(refresh, 600);
+}
+async function toggleMute(){
+  const g = activeGroup(); if(!g) return;
+  const on = !g.mute; g.mute = on;
+  render();
+  await api(`/api/${g.id}/groupmute/${on?1:0}`, 'POST');
+  setTimeout(refresh, 450);
+}
+
+/* ---- Navigation (Hub ↔ Spokes) ---- */
+function go(v){
+  view = (view === v && v !== 'now') ? 'now' : v;   // aktiven Spoke erneut tippen → zurück zum Hub
+  render();
+  if(view === 'quellen' && !sources) ensureSources();
+  if(view === 'szenen' && !scenes) ensureScenes();
+}
+
+/* ---- Quellen (Sonos-Favoriten) ---- */
+async function ensureSources(force){
+  if(sourcesLoading) return;
+  sourcesLoading = true; if(force) sourcesErr = null;
+  render();
+  const id = curId();
+  const d = id ? await api(`/api/${id}/sources`) : { ok:false, error:'keine Gruppe' };
+  if(d && d.ok && Array.isArray(d.sources)){ sources = d.sources; sourcesErr = null; }
+  else { sources = null; sourcesErr = (d && d.error) || 'unerwartete Antwort'; }
+  sourcesLoading = false;
+  render();
+}
+/* ---- Pager-Primitiv (Seitenblättern statt Scrollen; geteilt: Quellen, Szenen, …) ----
+   paged(id, items, perPage, renderItems(pageItems,startIndex)) → eine Seite + Steuerleiste.
+   State je Pager überlebt Re-Renders; blättern per Tasten, Wischen, Pfeiltasten. */
+const pagers = {};
+function pagerState(id){ return pagers[id] || (pagers[id] = { page: 0 }); }
+function pagerGo(id, p){ pagerState(id).page = p; render(); }
+function pagerStep(id, dir){ pagerState(id).page += dir; render(); }   // Clamping passiert in paged()
+function pagerPages(cur, total){
+  if(total <= 5) return [...Array(total).keys()];      // wenige Seiten: alle zeigen
+  const out = [0];                                     // sonst: 1 … aktuell … letzte
+  if(cur > 1) out.push('…');
+  if(cur !== 0 && cur !== total - 1) out.push(cur);
+  if(cur < total - 2) out.push('…');
+  out.push(total - 1);
+  return out;
+}
+function pagerControl(id, cur, total){
+  const nav = (dir, ic, dis) =>
+    `<button class="btn iconbtn pager__nav" ${dis ? 'disabled' : ''} onclick="pagerStep('${id}',${dir})" aria-label="${dir < 0 ? 'Vorige Seite' : 'Nächste Seite'}">${icon(ic, 28)}</button>`;
+  const pages = pagerPages(cur, total).map(p =>
+    p === '…' ? `<span class="pager__gap">…</span>`
+              : `<button class="pager__pg ${p === cur ? 'is-current' : ''}" onclick="pagerGo('${id}',${p})" aria-label="Seite ${p + 1}">${p + 1}</button>`
+  ).join('');
+  return `<div class="pager">${nav(-1, 'chevron-left', cur === 0)}<div class="pager__pages">${pages}</div>${nav(1, 'chevron-right', cur === total - 1)}</div>`;
+}
+function paged(id, items, perPage, renderItems){
+  const st = pagerState(id);
+  const total = Math.max(1, Math.ceil(items.length / perPage));
+  st.page = Math.min(Math.max(st.page, 0), total - 1);
+  const start = st.page * perPage;
+  const content = renderItems(items.slice(start, start + perPage), start);
+  const ctrl = total > 1 ? pagerControl(id, st.page, total) : '';
+  return `<div class="paged" data-pager="${id}">${content}${ctrl}</div>`;
+}
+
+function srcCard(s, i){
+  const art = s.artUrl ? `<img src="${esc(s.artUrl)}" onerror="this.outerHTML=SRC_FALL">` : SRC_FALL;
+  return `<button class="src-card" onclick="playSource(${i})" aria-label="${esc(s.name)} abspielen">` +
+    `<span class="src-card__art">${art}</span>` +
+    `<span class="src-card__title">${esc(s.name)}</span></button>`;
+}
+
+function quellenContent(){
+  if(sourcesLoading){
+    const skel = Array.from({length:pageSources()}).map(() =>
+      `<div class="src-card src-card--skel" aria-hidden="true">` +
+        `<span class="src-card__art"></span>` +
+        `<span class="skel-line"></span><span class="skel-line skel-line--short"></span></div>`).join('');
+    return `<div class="src-grid">${skel}</div>`;
+  }
+  if(sourcesErr) return stateScreen('Quellen nicht verfügbar', esc(sourcesErr),
+    `<button class="btn btn--text" onclick="ensureSources(true)">Erneut versuchen</button>`);
+  if(!sources || !sources.length) return stateScreen('Keine Favoriten',
+    'In der Sonos-App als Favorit speichern, dann hier antippen.');
+  return paged('sources', sources, pageSources(), (items, start) =>
+    `<div class="src-grid">${items.map((s, j) => srcCard(s, start + j)).join('')}</div>`);
+}
+async function playSource(i){
+  const s = sources && sources[i]; if(!s) return;
+  const room = curId(); if(!room) return;
+  // Buffering-Zustand merken → Hub zeigt sofort Spinner + Sendername (Radio puffert ein paar Sekunden)
+  pending = { room, name: s.name, since: Date.now() };
+  playedArt[room] = s.artUrl || '';   // Senderlogo als Cover-Fallback merken (Radio hat oft kein Track-Bild)
+  view = 'now';
+  toast(`Starte „${s.name}" …`);
+  render();
+  console.log('[playSource]', { room, id: s.id });
+  const r = await api(`/api/${room}/playsource`, 'POST', { id: s.id });
+  if(!r || !r.ok){
+    const msg = (r && r.error) || 'unbekannter Fehler';
+    console.error('[playSource] FEHLER bei', s.name, '→', msg);
+    toast(`„${s.name}" startet nicht: ${msg}`);
+    pending = null; render();   // Spinner weg, echten Zustand zeigen
+  } else {
+    console.log('[playSource] ok:', s.name);
+  }
+  // Gestaffelt nachladen — bis der Stream wirklich spielt (echte Metadaten/Cover) dauert es oft 2–6 s
+  [1500, 3500, 6000].forEach(t => setTimeout(refresh, t));
+}
+
+let busy = false;
+async function refresh(){
+  if(busy) return; busy = true;
+  try {
+    const d = await api('/api/state');
+    state = (d && d.ok && Array.isArray(d.groups)) ? d : { ok:false, error:(d && d.error) || 'unerwartete Antwort' };
+    if(pending){
+      const pg = (state.groups || []).find(x => x.id === pending.room);
+      const live = pg && pg.state === 'playing' && pg.now && pg.now.title;
+      if(live || Date.now() - pending.since > 25000) pending = null;   // spielt jetzt wirklich, oder Backstop nach 25s
+    }
+    render();
+  } finally { busy = false; }
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('is-show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('is-show'), 1800);
+}
+
+// Blättern per Wischen (innerhalb eines .paged-Bereichs) und Pfeiltasten
+let _swipe = null;
+app.addEventListener('touchstart', e => {
+  const p = e.target.closest('.paged');
+  _swipe = p ? { id: p.dataset.pager, x: e.changedTouches[0].clientX } : null;
+}, { passive: true });
+app.addEventListener('touchend', e => {
+  if(!_swipe) return;
+  const dx = e.changedTouches[0].clientX - _swipe.x;
+  if(Math.abs(dx) > 45) pagerStep(_swipe.id, dx < 0 ? 1 : -1);
+  _swipe = null;
+}, { passive: true });
+window.addEventListener('keydown', e => {
+  const p = document.querySelector('.paged'); if(!p) return;
+  if(e.key === 'ArrowLeft') pagerStep(p.dataset.pager, -1);
+  else if(e.key === 'ArrowRight') pagerStep(p.dataset.pager, 1);
+});
+// Orientierung/Größe geändert → neu rendern (Spalten + Seitengröße folgen)
+let _rzt; window.addEventListener('resize', () => { clearTimeout(_rzt); _rzt = setTimeout(render, 150); });
+
+app.innerHTML = stateScreen('Verbinde …', '', spinner(48));
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

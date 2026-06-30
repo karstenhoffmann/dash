@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Runtime / local state
+scenes.json
+
+# Node / frontend build (later)
+node_modules/
+dist/

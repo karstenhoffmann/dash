@@ -1,0 +1,359 @@
+/* ============================================================
+   Sonos-Controller — Design-System (E-Ink-Hochkontrast-Skin)
+   Tokens -> Reset -> Komponenten. Screens komponieren nur Klassen.
+   Regeln: nur Lucide-SVG-Icons, grobe Touch-Zonen (>=64px), kein Emoji.
+   ============================================================ */
+
+:root{
+  --ink:#0f0f0f;
+  --paper:#ffffff;
+  --muted:#666666;
+  --line:#0f0f0f;
+  --line-soft:#cccccc;
+  --page:#e6e6e6;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:28px; --s7:40px; --s8:56px;
+
+  --r-sm:10px; --r:14px; --r-lg:18px;
+
+  --t-xs:14px; --t-sm:16px; --t-md:18px; --t-lg:21px; --t-xl:25px;
+
+  --hit:66px; --hit-lg:84px; --hit-xl:104px;
+  --bw:2px;
+
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; }
+body{
+  background:var(--page); color:var(--ink);
+  font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+
+button{
+  font:inherit; color:inherit; background:none; border:none; margin:0; padding:0;
+  cursor:pointer; user-select:none; -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+
+/* ---- App-Shell ---- */
+.app{
+  /* EIN Treiber für die fluide Layout-Interpolation: geклampte Viewport-Höhe.
+     Alle vertikalen Größen interpolieren linear zwischen Kompakt (=720px) und Ideal (=1000px),
+     gesteuert über (var(--ph) - 720px) ∈ [0..280px]. So schrumpft das ganze Layout koordiniert
+     (Abstände, Tasten, Text, Cover gemeinsam) statt nur das Cover — und ohne diskrete Sprünge. */
+  --ph: clamp(720px, 100svh, 1000px);
+  --pd: calc(var(--ph) - 720px);   /* 0px (kompakt) .. 280px (ideal) */
+  --appw: min(540px, 100vw);       /* App-Breite (Landscape überschreibt → breiter) */
+
+  max-width:var(--appw); margin-inline:auto;
+  min-height:100vh; min-height:100dvh;
+  background:var(--paper);
+  display:flex; flex-direction:column;
+  padding:var(--s6) var(--s5) var(--s4);
+  gap:var(--s5);
+}
+/* Mittlere Bühne. Portrait: Spalte (Cover oben, np-main unten); Gap klein (Cover↔Main, 8→18). */
+.stage{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;
+  gap:calc(8px + var(--pd) * 0.0357); }
+
+/* ---- App-Bar ---- */
+.appbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:var(--s4); border-bottom:var(--bw) solid var(--line);
+}
+.appbar__left{ display:flex; align-items:center; gap:var(--s3); min-width:0; }
+.appbar__home{ display:flex; align-items:center; justify-content:center; flex:none;
+  width:52px; height:52px; color:var(--ink);
+  border:var(--bw) solid var(--line); border-radius:var(--r-sm); background:var(--paper); }
+.appbar__home:active{ background:var(--ink); color:var(--paper); }
+.appbar__title{
+  display:inline-flex; align-items:center; gap:var(--s2); min-width:0;
+  font-size:var(--t-xl); font-weight:600; line-height:1; min-height:48px;
+}
+.appbar__title > span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.appbar__title:active{ opacity:.55; }
+.appbar__clock{ font-size:var(--t-md); color:var(--muted); font-variant-numeric:tabular-nums; }
+
+/* ---- Buttons ---- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--s2);
+  border:var(--bw) solid var(--line); border-radius:var(--r);
+  background:var(--paper); color:var(--ink); font-weight:500;
+  transition:background .12s var(--ease), color .12s var(--ease), transform .05s var(--ease);
+}
+.btn:active{ background:var(--ink); color:var(--paper); transform:scale(.98); }
+.btn--primary{ background:var(--ink); color:var(--paper); }
+.btn--primary:active{ background:var(--paper); color:var(--ink); }
+.btn--text{ height:var(--hit); padding:0 var(--s6); font-size:var(--t-md); }
+
+.iconbtn{ width:var(--hit); height:var(--hit); flex:none; }
+/* Transport-Tasten interpolieren mit (Prev/Next 72→84, Play 84→104) — bleiben >=72px Tippziel */
+.iconbtn--lg{ width:calc(72px + var(--pd) * 0.0429); height:calc(72px + var(--pd) * 0.0429); }
+.iconbtn--xl{ width:calc(84px + var(--pd) * 0.0714); height:calc(84px + var(--pd) * 0.0714); }
+
+/* ---- Now-Playing (Hero) ---- */
+/* np-main = Text + Controls. Portrait: gestapelt (mittlerer Gap text↔controls 16→48).
+   Landscape (siehe unten): rechte Spalte neben dem Cover. */
+.np-main{ width:100%; display:flex; flex-direction:column; align-items:stretch;
+  gap:calc(16px + var(--pd) * 0.114); }
+/* Cover interpoliert 150→300 mit der Höhe (auf schmalen Screens zusätzlich per 64vw begrenzt).
+   Schrumpft NICHT allein — Abstände/Tasten/Text schrumpfen mit (siehe --pd). */
+.cover-lg{
+  width:min(64vw, calc(150px + var(--pd) * 0.536)); aspect-ratio:1; flex:none; overflow:hidden;
+  border:var(--bw) solid var(--line); border-radius:var(--r);
+  background:#efefef; color:var(--muted);
+  display:flex; align-items:center; justify-content:center; object-fit:cover;
+}
+/* Platz fuer Titel(2 Zeilen)+Untertitel -> kein Springen; Höhe interpoliert (64→112) */
+.np-hero__text{ width:100%; height:calc(64px + var(--pd) * 0.171); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:var(--s2); }
+.np-hero__title{
+  font-size:calc(19px + var(--pd) * 0.0393); font-weight:600; line-height:1.2; max-width:100%;   /* 19→30 */
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.np-hero__sub{ font-size:calc(15px + var(--pd) * 0.0214); color:var(--muted); min-height:1.3em; line-height:1.3;  /* 15→21 */
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+
+/* ---- Controls ---- */
+.controls{ display:flex; flex-direction:column; gap:calc(12px + var(--pd) * 0.05); }   /* 12→26 */
+.transport{ display:flex; align-items:center; justify-content:center; gap:var(--s5); }
+
+.section-label{ display:flex; align-items:baseline; justify-content:space-between;
+  font-size:var(--t-md); color:var(--muted); margin-bottom:var(--s3); }
+.section-label b{ color:var(--ink); font-weight:600; font-size:var(--t-lg);
+  font-variant-numeric:tabular-nums; }
+.volume{ display:flex; align-items:center; gap:var(--s3); }
+.segbar{
+  flex:1; height:var(--hit); display:flex; align-items:stretch; gap:3px; padding:7px;
+  border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--paper);
+}
+.segbar__seg{ flex:1; border-radius:2px; }
+
+/* Ausklappbare Einzel-Lautstärken je Raum */
+.rooms{ display:flex; flex-direction:column; gap:var(--s3); margin-top:var(--s4);
+  padding-top:var(--s4); border-top:1px solid var(--line-soft); }
+.room{ display:flex; align-items:center; gap:var(--s3); }
+.room__name{ width:108px; flex:none; font-size:var(--t-sm);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.segbar--room{ height:var(--hit); }
+
+/* ---- Loading: gestufter Segment-Spinner ----
+   E-Ink-freundlich: diskrete Schritte (steps()), 2-Ton (ink + Verblassen), kein Gradient/Smooth-Spin.
+   Jeder Tick = ein lokaler Teil-Refresh; Kopf springt um 45°. */
+.spinner{ display:inline-flex; flex:none; color:var(--ink); }
+.spinner svg{ transform-origin:center; animation:spin-step 1s steps(8) infinite; }
+@keyframes spin-step{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){ .spinner svg{ animation-duration:2.4s; } }
+
+/* Skeleton: statisches Layout-Gerüst (KEIN Shimmer-Sweep — bewegter Gradient ist auf e-ink teuer) */
+.src-card--skel{ pointer-events:none; }
+.src-card--skel .src-card__art{ background:var(--line-soft); border-color:var(--line-soft); }
+.skel-line{ height:14px; border-radius:6px; background:var(--line-soft); }
+.skel-line--short{ width:60%; }
+
+/* ---- Pager-Primitiv (Seitenblättern; geteilt für Quellen, Szenen, …) ---- */
+/* Shell füllt die Bühne und verteilt den Platz (Reihen atmen, Pager unten) — nicht nur Außen-Padding */
+.paged{ flex:1; min-height:0; display:flex; flex-direction:column; gap:clamp(14px, 2.6vh, 30px); }
+.pager{ display:flex; align-items:center; justify-content:center; gap:var(--s3); }
+.pager__pages{ display:flex; align-items:center; gap:var(--s2); }
+.pager__pg{ min-width:56px; height:56px; padding:0 var(--s2); flex:none;
+  display:flex; align-items:center; justify-content:center;
+  border:var(--bw) solid var(--line); border-radius:var(--r);
+  font-size:var(--t-lg); font-weight:600; font-variant-numeric:tabular-nums;
+  background:var(--paper); color:var(--ink); }
+.pager__pg.is-current,.pager__pg:active{ background:var(--ink); color:var(--paper); }
+.pager__gap{ min-width:24px; text-align:center; color:var(--muted); font-size:var(--t-lg); }
+.pager__nav:disabled{ opacity:.28; }
+.pager__nav:disabled:active{ background:var(--paper); color:var(--ink); transform:none; }
+
+/* ---- Quellen (Favoriten-Kacheln) ---- */
+/* Modell:
+   - Spalten füllen die Breite (3×1fr) — Höhe ändert NIE die Breite (kein Zoom-Effekt).
+   - Cover hat eine angepeilte Ideal-Größe (--ideal). Solange Platz ist, bleibt es dort und der
+     ÜBERSCHUSS wird als gleichmäßige Abstände verteilt (align-content:space-evenly) → kein toter Block.
+   - Erst wenn die Höhe unter das Ideal-Minimum fällt, schrumpft das Cover fließend (Höhen-Budget) → nie Abschnitt. */
+.src-grid{
+  --gg: 10px;                        /* Mindestabstand; Überschuss verteilt space-evenly */
+  --te: 70px;                        /* reservierte Höhe je Kachel unter dem Cover (Titel + Padding) */
+  --chrome: 330px;                   /* feste vertikale Chrome: Header + Tabbar + Pager + Paddings */
+  --ideal: 140px;                    /* angepeilte Cover-Größe (mit Luft, die die Abstände schlucken) */
+  --cols: 3;                         /* Spalten (Landscape überschreibt → mehr) */
+  --rows: 3;                         /* Reihen-Annahme fürs Höhen-Budget */
+  --art: clamp(46px,
+    min( var(--ideal),
+         calc((var(--appw) - 2*var(--s5) - (var(--cols) - 1)*var(--gg)) / var(--cols)),
+         calc((100svh - var(--chrome) - 2*var(--gg)) / var(--rows) - var(--te)) ),
+    var(--ideal));
+  flex:1; min-height:0; display:grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  align-content: space-evenly; justify-items: stretch; gap: var(--gg);
+}
+.src-card{ display:flex; flex-direction:column; gap:var(--s2); padding:var(--s2); min-width:0; min-height:0;
+  border:var(--bw) solid var(--line); border-radius:var(--r-lg); background:var(--paper);
+  color:var(--ink); text-align:left; }
+.src-card:active{ background:var(--ink); color:var(--paper); transform:scale(.99); }
+/* Cover = Quadrat in Ideal-/Fluid-Größe, horizontal in der (vollbreiten) Kachel zentriert */
+.src-card__art{ width:var(--art); aspect-ratio:1; margin-inline:auto; overflow:hidden; flex:none;
+  border:var(--bw) solid var(--line); border-radius:var(--r); background:#efefef; color:var(--muted);
+  display:flex; align-items:center; justify-content:center; }
+.src-card__art img{ width:100%; height:100%; object-fit:cover; display:block; }
+.src-card__title{ font-size:clamp(13px, calc(1.2vh + 7px), 18px); font-weight:600; line-height:1.2; text-align:center;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+/* Notfall/Stauch-Stufe (unter Ideal-Minimum): Titel einzeilig, weniger reservierte Höhe →
+   das Cover darf größer bleiben. Cover-Größe bleibt fluide → nichts wird abgeschnitten. */
+@media (max-height: 720px){
+  .src-grid{ --te: 48px; }
+  .src-card__title{ -webkit-line-clamp:1; }
+}
+
+/* Gruppen-Editor: Aktionsleiste unten (staged → erst „Übernehmen" wendet an) */
+.editbar{ margin-top:var(--s4); padding-top:var(--s4); border-top:1px solid var(--line-soft);
+  display:flex; gap:var(--s3); }
+.editbar__btn{ flex:1; height:var(--hit); font-size:var(--t-lg); }
+.editbar__btn:disabled{ opacity:.4; }
+.editbar__btn:disabled:active{ background:var(--paper); color:var(--ink); transform:none; }
+.ov-divider{ height:1px; background:var(--line-soft); margin:var(--s2) 0 var(--s3); }
+
+/* ---- Räume & Gruppen ---- */
+.rooms-screen{ flex:1; min-height:0; display:flex; flex-direction:column;
+  justify-content:center; gap:clamp(10px, 2.2vh, 22px); }
+.grp{ width:100%; min-width:0; display:flex; flex-direction:column; gap:var(--s3); padding:var(--s4);
+  border:var(--bw) solid var(--line); border-radius:var(--r-lg); background:var(--paper); color:var(--ink); }
+.grp__head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s3); }
+.grp__name{ font-size:var(--t-lg); font-weight:600; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.grp__group{ flex:none; display:inline-flex; align-items:center; gap:var(--s2);
+  height:48px; padding:0 var(--s4); font-size:var(--t-sm); font-weight:600;
+  border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--paper); color:var(--ink); }
+.grp__group:active{ background:var(--ink); color:var(--paper); }
+.grp__chips{ display:flex; flex-wrap:wrap; gap:var(--s2); }
+.chip{ font-size:var(--t-sm); padding:4px 12px; border:var(--bw) solid var(--line-soft);
+  border-radius:999px; color:var(--ink); white-space:nowrap; }
+.grp__now{ display:flex; align-items:center; gap:var(--s2); min-width:0; font-size:var(--t-sm); color:var(--muted); }
+.grp__nowtxt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ---- Szenen ---- */
+.scene-grid{ --scols:2; flex:1; min-height:0; display:grid; grid-template-columns:repeat(var(--scols), minmax(0, 1fr));
+  gap:clamp(10px, 2vh, 18px); align-content:start; }
+.scene-tile{ display:flex; flex-direction:column; gap:var(--s2); padding:var(--s4); min-height:104px; min-width:0;
+  border:var(--bw) solid var(--line); border-radius:var(--r-lg); background:var(--paper); color:var(--ink); text-align:left; }
+.scene-tile:active{ background:var(--ink); color:var(--paper); transform:scale(.99); }
+.scene-tile__name{ font-size:var(--t-lg); font-weight:600; line-height:1.15;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.scene-tile__rooms{ font-size:var(--t-sm); color:var(--muted); line-height:1.25;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.scene-tile__src{ display:inline-flex; align-items:center; gap:6px; font-size:var(--t-sm); color:var(--muted);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.scene-tile:active .scene-tile__rooms,.scene-tile:active .scene-tile__src{ color:var(--paper); }
+.scene-tile--add{ align-items:center; justify-content:center; text-align:center; gap:var(--s2);
+  color:var(--muted); border-style:dashed; }
+.scene-tile--add .scene-tile__name{ font-size:var(--t-md); color:var(--muted); }
+.scene-tile--add:active{ color:var(--paper); }
+
+/* Szenen-Verwalten-Overlay */
+.scmgr__cap{ font-size:var(--t-sm); color:var(--muted); line-height:1.4; margin-bottom:var(--s3); }
+.scmgr__input{ width:100%; height:var(--hit); font:inherit; font-size:var(--t-md); padding:0 var(--s4);
+  border:var(--bw) solid var(--line); border-radius:var(--r); background:var(--paper); color:var(--ink);
+  margin-bottom:var(--s3); }
+.scmgr__btn{ width:100%; height:var(--hit); font-size:var(--t-lg); }
+.scmgr__list{ display:flex; flex-direction:column; gap:var(--s2); }
+.scmgr__row{ display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  padding:var(--s2) var(--s2) var(--s2) var(--s4); border:var(--bw) solid var(--line-soft); border-radius:var(--r); }
+.scmgr__rowname{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:var(--t-md); font-weight:600; }
+.scmgr__del{ flex:none; width:48px; height:48px; color:var(--muted); }
+
+/* ---- Bottom-Nav ---- */
+/* Footer-Tabs: horizontale Linie, darunter drei Flächen mit anschließenden Trenn-Linien */
+.tabbar{ display:flex; border-top:var(--bw) solid var(--line); }
+.tab{ flex:1; height:var(--hit-lg); font-size:var(--t-lg); font-weight:600; color:var(--ink);
+  display:flex; align-items:center; justify-content:center; background:var(--paper); }
+.tab + .tab{ border-left:var(--bw) solid var(--line); }
+.tab:active,.tab.is-active{ background:var(--ink); color:var(--paper); }
+
+/* ---- Status-/Leerzustände ---- */
+.state{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:var(--s5); text-align:center; color:var(--muted); }
+.state__big{ font-size:var(--t-xl); font-weight:600; color:var(--ink); }
+.state__row{ display:flex; gap:var(--s3); }
+
+/* ---- Overlay-Primitive (eine Quelle; Präsentation per Variante austauschbar) ---- */
+.overlay{ position:fixed; inset:0; background:rgba(15,15,15,.42); display:flex; }
+.overlay__panel{ width:100%; max-width:540px; background:var(--paper); padding:var(--s5);
+  border:0 solid var(--line); }
+.overlay__head{ display:flex; align-items:center; justify-content:space-between;
+  color:var(--ink); font-size:var(--t-lg); font-weight:600; margin-bottom:var(--s4); }
+.overlay__close{ color:var(--muted); display:flex; padding:var(--s2); }
+.overlay__item{ width:100%; min-height:var(--hit); display:flex; align-items:center;
+  justify-content:flex-start; gap:var(--s3); padding:var(--s3) var(--s4); margin-bottom:var(--s3);
+  font-size:var(--t-lg); border:var(--bw) solid var(--line); border-radius:var(--r);
+  background:var(--paper); color:var(--ink); }
+.overlay__item:active,.overlay__item.is-current{ background:var(--ink); color:var(--paper); }
+.ov-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; text-align:left; }
+.ov-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ov-sub{ font-size:var(--t-sm); color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ov-status{ flex:none; display:flex; color:var(--muted); }
+.overlay__item.is-current .ov-sub,
+.overlay__item.is-current .ov-status{ color:var(--paper); }
+
+/* Präsentations-Varianten — der Default steht zentral in JS (OVERLAY_VARIANT) */
+/* Sheets dimmen NICHT (E-Ink-freundlich) — solider Rahmen + Schatten tragen die Abgrenzung */
+.overlay--sheet-top{ align-items:flex-start; justify-content:center; background:transparent; }
+.overlay--sheet-top .overlay__panel{ border-bottom-width:var(--bw); border-radius:0 0 var(--r-lg) var(--r-lg);
+  box-shadow:0 12px 30px rgba(15,15,15,.20); }
+.overlay--sheet-bottom{ align-items:flex-end; justify-content:center; background:transparent; }
+.overlay--sheet-bottom .overlay__panel{ border-top-width:var(--bw); border-radius:var(--r-lg) var(--r-lg) 0 0;
+  box-shadow:0 -12px 30px rgba(15,15,15,.20); }
+.overlay--modal{ align-items:center; justify-content:center; padding:var(--s5); }
+.overlay--modal .overlay__panel{ max-width:480px; border-width:var(--bw); border-radius:var(--r-lg); }
+
+/* Popover-Varianten: KEIN Abdunkeln (E-Ink-freundlich), lokal am Trigger verankert,
+   solider Rahmen trägt die Abgrenzung; Schatten nur als dezente TFT-Zugabe. */
+.overlay--popover-top, .overlay--popover-bottom{ background:transparent; }
+.overlay--popover-top .overlay__panel,
+.overlay--popover-bottom .overlay__panel{ position:absolute; left:50%; transform:translateX(-50%);
+  width:calc(min(540px,100vw) - 2*var(--s5));
+  border:var(--bw) solid var(--line); border-radius:var(--r-lg);
+  box-shadow:0 8px 24px rgba(15,15,15,.18); }
+
+/* Tastatur-Fokus (Polish) */
+.btn:focus-visible, .tab:focus-visible, .iconbtn:focus-visible, .segbar:focus-visible,
+.overlay__item:focus-visible, .appbar__title:focus-visible{ outline:3px solid var(--line); outline-offset:2px; }
+/* Lautstärken-Overlay: Gruppe + einzelne Räume (verändert die Layouthöhe nicht) */
+.lvl{ display:flex; flex-direction:column; gap:var(--s2); }
+.lvl + .lvl{ margin-top:var(--s4); padding-top:var(--s4); border-top:1px solid var(--line-soft); }
+.lvl .section-label{ margin-bottom:0; }
+.lvl__name{ font-size:var(--t-lg); font-weight:600; color:var(--ink); line-height:1.15;
+  white-space:normal; overflow-wrap:break-word; hyphens:auto; -webkit-hyphens:auto; }
+
+/* ============================================================
+   LANDSCAPE — eigener, breiter Zustand. Portrait-Regeln oben bleiben unberührt.
+   ============================================================ */
+@media (orientation: landscape){
+  .app{ --appw: min(1040px, 96vw); }
+
+  /* Now-Playing: Cover links (höhengetrieben), np-main rechts daneben */
+  .stage{ flex-direction:row; align-items:center; justify-content:center; gap:clamp(24px, 4vw, 64px); }
+  .cover-lg{ width:auto; height:min(calc(100svh - 200px), 44vw); max-height:440px; }
+  .np-main{ width:auto; flex:0 1 480px; min-width:0; }
+  .np-hero__text{ height:auto; align-items:flex-start; text-align:left; }
+  .np-hero__title{ text-align:left; font-size:clamp(24px, 2.6vw, 34px); }
+  .np-hero__sub{ font-size:clamp(16px, 1.5vw, 22px); }
+
+  /* Raster nutzen die Breite: mehr Spalten */
+  .src-grid{ --cols:6; --rows:2; }
+  .scene-grid{ --scols:4; }
+  .rooms-screen{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-content:center; gap:clamp(12px, 2vw, 22px); }
+}
+
+/* ---- Toast ---- */
+.toast{ position:fixed; left:50%; bottom:var(--s6); transform:translateX(-50%);
+  background:var(--ink); color:var(--paper); padding:var(--s3) var(--s5);
+  border-radius:var(--r); font-size:var(--t-sm); opacity:0; pointer-events:none;
+  transition:opacity .2s var(--ease); }
+.toast.is-show{ opacity:1; }
