@@ -1,0 +1,67 @@
+/* BASE — Reset + globale Defaults. Trägt Skin auf das Dokument (nur via Tokens).
+ * Composition/Primitive bleiben skin-frei (CUBE). Hier leben die Doc-weiten Regeln.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  color-scheme: light;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* Kein Scrollen → Blättern (Verfassung §7). Screens steuern Overflow bewusst. */
+  overflow: hidden;
+  min-block-size: 100dvh;
+  background: var(--page);
+  color: var(--ink);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    roboto,
+    sans-serif;
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+
+  /* E-Ink/Touch: keine Auswahl-/Highlight-Artefakte */
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+svg {
+  display: block;
+  max-inline-size: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+:where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,15 @@
+/* COVER — App-Shell: füllt den Viewport, zentriert eine Hauptregion, kein Scroll
+ * (Every Layout). Header oben, .cover__center vertikal zentriert, Footer unten.
+ */
+.cover {
+  display: flex;
+  flex-direction: column;
+  min-block-size: var(--cover-min, 100dvh);
+  padding: var(--cover-pad, var(--gutter));
+  gap: var(--cover-space, var(--s-sm));
+  overflow: hidden;
+}
+
+.cover > .cover__center {
+  margin-block: auto;
+}

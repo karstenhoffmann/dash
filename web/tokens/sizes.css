@@ -1,0 +1,25 @@
+/* Nicht-fluide Maß-Tokens (Touch, Rahmen, Radien, App-Breite, Grid-Maß).
+ * Geschlossen — neue Werte nur per ADR (ADR-0007). Raw px/rem nur HIER erlaubt.
+ */
+:root {
+  /* Touch-Ziele (Verfassung §7: ≥ 64 px) */
+  --hit: 4rem; /* 64px — Mindestziel */
+  --hit-lg: 4.5rem; /* 72px — wichtige Aktionen */
+  --hit-xl: 6rem; /* 96px — primäre Transport-Knöpfe */
+
+  /* Icons (Lucide-SVG) */
+  --icon-sm: 1.25rem; /* 20px */
+  --icon-md: 1.75rem; /* 28px */
+  --icon-lg: 3rem; /* 48px */
+
+  /* Rahmen & Radien (flach, hochkontrast) */
+  --border-width: 2px;
+  --radius-sm: 0.5rem; /* 8px */
+  --radius: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+
+  /* Layout-Maße */
+  --app-max: 40rem; /* 640px — max. App-Breite (Center) */
+  --grid-min: 9rem; /* 144px — Default-Mindestspalte (Grid auto-fit) */
+  --gutter: var(--s-sm); /* Standard-Außenabstand */
+}

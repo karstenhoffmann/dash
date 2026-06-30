@@ -1,0 +1,16 @@
+/* CENTER — horizontal zentrierter Inhalt mit max. Breite (Every Layout).
+ * Max-Breite via --center-max (Token), Default --app-max.
+ */
+.center {
+  box-sizing: content-box;
+  max-inline-size: var(--center-max, var(--app-max));
+  margin-inline: auto;
+  padding-inline: var(--center-gutter, var(--gutter));
+}
+
+/* Variante: zentriert auch die Kinder horizontal. */
+.center--intrinsic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

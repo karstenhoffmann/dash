@@ -1,0 +1,18 @@
+/* FRAME — feste Seitenverhältnis-Box, Inhalt füllt sie (Every Layout).
+ * Für quadratische Cover (Now Playing). Verhältnis via --frame-ratio.
+ */
+.frame {
+  aspect-ratio: var(--frame-ratio, 1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.frame > img,
+.frame > svg,
+.frame > video {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}

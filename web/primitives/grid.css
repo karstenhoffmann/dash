@@ -1,0 +1,8 @@
+/* GRID — Spalten reflowen nach Breite, ohne Media-Queries (Every Layout).
+ * Mindestspalte via --grid-min (Token). Für Quellen-/Szenen-Kacheln.
+ */
+.grid {
+  display: grid;
+  gap: var(--grid-space, var(--s-sm));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--grid-min), 100%), 1fr));
+}

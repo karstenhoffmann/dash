@@ -1,0 +1,17 @@
+/* STACK — vertikaler Fluss mit konsistentem Abstand (Every Layout).
+ * Abstand pro Instanz via --stack-space (Token), Default --s-sm.
+ */
+.stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.stack > * + * {
+  margin-block-start: var(--stack-space, var(--s-sm));
+}
+
+/* Schiebt alles nach einem markierten Kind ans untere Ende. */
+.stack > [data-stack-push] {
+  margin-block-end: auto;
+}

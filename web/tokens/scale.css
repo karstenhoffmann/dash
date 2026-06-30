@@ -1,0 +1,26 @@
+/* GENERIERT von scripts/gen-scales.mjs — NICHT von Hand editieren.
+ * Fluide Utopia-Scales (320px … 1240px). Einzige erlaubte clamp()/px-Quelle.
+ * Token-Set ist geschlossen; neue Stufe nur per ADR (ADR-0007).
+ */
+:root {
+  /* Fluide Typo-Scale (font-size) */
+  --t-xs: clamp(0.8333rem, 0.8101rem + 0.1159vw, 0.9rem);
+  --t-sm: clamp(1rem, 0.9565rem + 0.2174vw, 1.125rem);
+  --t-md: clamp(1.2rem, 1.1283rem + 0.3587vw, 1.4063rem);
+  --t-lg: clamp(1.44rem, 1.3295rem + 0.5527vw, 1.7578rem);
+  --t-xl: clamp(1.728rem, 1.5648rem + 0.8161vw, 2.1973rem);
+  --t-2xl: clamp(2.0736rem, 1.8395rem + 1.1704vw, 2.7466rem);
+  --t-3xl: clamp(2.4883rem, 2.1597rem + 1.6433vw, 3.4332rem);
+  --t-4xl: clamp(2.986rem, 2.5319rem + 2.2705vw, 4.2915rem);
+
+  /* Fluide Space-Scale (gap, padding, margin) */
+  --s-3xs: clamp(0.25rem, 0.2391rem + 0.0543vw, 0.2813rem);
+  --s-2xs: clamp(0.5rem, 0.4783rem + 0.1087vw, 0.5625rem);
+  --s-xs: clamp(0.75rem, 0.7174rem + 0.163vw, 0.8438rem);
+  --s-sm: clamp(1rem, 0.9565rem + 0.2174vw, 1.125rem);
+  --s-md: clamp(1.5rem, 1.4348rem + 0.3261vw, 1.6875rem);
+  --s-lg: clamp(2rem, 1.913rem + 0.4348vw, 2.25rem);
+  --s-xl: clamp(3rem, 2.8696rem + 0.6522vw, 3.375rem);
+  --s-2xl: clamp(4rem, 3.8261rem + 0.8696vw, 4.5rem);
+  --s-3xl: clamp(6rem, 5.7391rem + 1.3043vw, 6.75rem);
+}

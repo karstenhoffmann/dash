@@ -1,0 +1,25 @@
+/* SKIN (S/W) — die dünne Token-Schicht ZULETZT (CUBE: Composition trägt kein Skin).
+ * Nur Farben/Skin-Werte. Ein zweiter Skin (z. B. e-ink, invertiert) wäre eine
+ * alternative Datei mit denselben Token-Namen. Geschlossen — Änderung per ADR.
+ */
+:root {
+  /* Graustufen-Palette (Refactoring-UI: Graustufen zuerst) */
+  --c-black: #111;
+  --c-white: #fff;
+  --c-grey-900: #1c1c1c;
+  --c-grey-600: #6b6b6b;
+  --c-grey-300: #cfcfcf;
+  --c-grey-100: #efefef;
+
+  /* Semantische Skin-Tokens (Komponenten nutzen NUR diese) */
+  --ink: var(--c-black); /* Vordergrund/Text */
+  --paper: var(--c-white); /* Flächen/Karten */
+  --page: var(--c-white); /* Seitenhintergrund */
+  --muted: var(--c-grey-600); /* sekundärer Text */
+  --line: var(--c-grey-300); /* Rahmen/Trennlinien */
+  --fill-soft: var(--c-grey-100); /* dezente Füllung (Cover-Fallback) */
+
+  /* Invertiert (aktiver/gedrückter Zustand: ink↔paper) */
+  --ink-inv: var(--c-white);
+  --paper-inv: var(--c-black);
+}

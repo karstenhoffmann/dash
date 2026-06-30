@@ -1,0 +1,19 @@
+/* CLUSTER — horizontale Gruppe, die bei Bedarf umbricht (Every Layout).
+ * Für Button-Reihen, Chips, Transport-Controls.
+ */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: var(--cluster-align, center);
+  justify-content: var(--cluster-justify, flex-start);
+  gap: var(--cluster-space, var(--s-sm));
+}
+
+/* Ausrichtungs-Varianten (statt Inline-Style, Verfassung §2). */
+.cluster--between {
+  justify-content: space-between;
+}
+
+.cluster--center {
+  justify-content: center;
+}

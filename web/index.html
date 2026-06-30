@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>dash</title>
+
+    <!-- Foundation-Kaskade: Tokens → Base → Primitive (→ Komponenten später). Skin zuletzt. -->
+    <link rel="stylesheet" href="./tokens/scale.css" />
+    <link rel="stylesheet" href="./tokens/sizes.css" />
+    <link rel="stylesheet" href="./base.css" />
+    <link rel="stylesheet" href="./primitives/stack.css" />
+    <link rel="stylesheet" href="./primitives/cluster.css" />
+    <link rel="stylesheet" href="./primitives/center.css" />
+    <link rel="stylesheet" href="./primitives/cover.css" />
+    <link rel="stylesheet" href="./primitives/grid.css" />
+    <link rel="stylesheet" href="./primitives/frame.css" />
+    <link rel="stylesheet" href="./tokens/skin-bw.css" />
+
+    <!-- No-build: bare specifier → lokal vendored ESM (ADR-0006/0008) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "preact": "./vendor/preact.module.js",
+          "preact/hooks": "./vendor/preact-hooks.module.js",
+          "htm": "./vendor/htm.module.js",
+          "htm/preact": "./vendor/htm-preact.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Preact rendert in diesen Light-DOM-Knoten → globale Primitive/Tokens greifen -->
+    <div id="app"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
