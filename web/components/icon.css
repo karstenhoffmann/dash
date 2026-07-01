@@ -1,0 +1,17 @@
+/* Icon — Lucide-SVG, Größe über Token (nie Pixel). */
+.icon {
+  display: block;
+  flex: none;
+  inline-size: var(--icon-md);
+  block-size: var(--icon-md);
+}
+
+.icon--sm {
+  inline-size: var(--icon-sm);
+  block-size: var(--icon-sm);
+}
+
+.icon--lg {
+  inline-size: var(--icon-lg);
+  block-size: var(--icon-lg);
+}

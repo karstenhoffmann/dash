@@ -22,4 +22,6 @@
   --app-max: 40rem; /* 640px — max. App-Breite (Center) */
   --grid-min: 9rem; /* 144px — Default-Mindestspalte (Grid auto-fit) */
   --gutter: var(--s-sm); /* Standard-Außenabstand */
+  --cover-max: 22rem; /* 352px — max. Kantenlänge des Now-Playing-Covers */
+  --segbar-h: 2rem; /* 32px — Höhe der Tipp-Lautstärkeleiste (Tippzone) */
 }

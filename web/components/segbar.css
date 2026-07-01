@@ -1,0 +1,19 @@
+/* SegBar — Lautstärke in 5%-Segmenten; ganze Leiste antippen setzt den Wert (DESIGN §6). */
+.segbar {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-3xs);
+  inline-size: 100%;
+  block-size: var(--segbar-h);
+  cursor: pointer;
+}
+
+.segbar__seg {
+  flex: 1;
+  background: var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.segbar__seg.is-on {
+  background: var(--ink);
+}

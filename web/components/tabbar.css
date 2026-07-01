@@ -1,0 +1,27 @@
+/* TabBar — Navigation Start/Räume/Quellen/Szenen. Sitzt unten in der Cover-Shell. */
+.tabbar {
+  flex: none;
+  justify-content: space-around;
+}
+
+.tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3xs);
+  min-block-size: var(--hit-lg);
+  min-inline-size: var(--hit);
+  padding: var(--s-2xs) var(--s-xs);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  font-size: var(--t-xs);
+}
+
+.tab.is-active {
+  color: var(--ink);
+}
+
+.tab:active {
+  background: var(--fill-soft);
+}

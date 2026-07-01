@@ -1,0 +1,32 @@
+/* AppBar — Gruppenname (+ Umschalter) links, Uhr rechts. Sitzt oben in der Cover-Shell. */
+.appbar {
+  flex: none;
+}
+
+.appbar__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2xs);
+  min-block-size: var(--hit);
+  min-inline-size: 0;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.appbar__title[disabled] {
+  cursor: default;
+}
+
+.appbar__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appbar__clock {
+  flex: none;
+  color: var(--muted);
+  font-size: var(--t-md);
+}

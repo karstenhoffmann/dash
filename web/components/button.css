@@ -1,0 +1,64 @@
+/* Button + IconButton — flach, große Tippziele (≥ var(--hit)), Aktiv = invertiert. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2xs);
+  min-block-size: var(--hit);
+  padding-inline: var(--s-md);
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--t-sm);
+  font-weight: 500;
+}
+
+.btn:active {
+  background: var(--ink);
+  color: var(--ink-inv);
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--ink-inv);
+}
+
+.btn--primary:active {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.btn[disabled] {
+  color: var(--muted);
+  border-color: var(--line);
+  opacity: 0.5;
+}
+
+/* Quadratischer Icon-Button */
+.iconbtn {
+  inline-size: var(--hit);
+  block-size: var(--hit);
+  padding: 0;
+  flex: none;
+}
+
+.iconbtn--lg {
+  inline-size: var(--hit-lg);
+  block-size: var(--hit-lg);
+}
+
+.iconbtn--xl {
+  inline-size: var(--hit-xl);
+  block-size: var(--hit-xl);
+}
+
+.iconbtn--plain {
+  border-color: transparent;
+  background: none;
+}
+
+.iconbtn--plain:active {
+  background: var(--fill-soft);
+  color: var(--ink);
+}

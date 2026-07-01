@@ -1,0 +1,47 @@
+/* Now Playing — Hub-Layout (Komposition; nur Maße/Token, kein neues Skin). */
+.np {
+  inline-size: 100%;
+  text-align: center;
+}
+
+.np__cover {
+  inline-size: min(70vw, var(--cover-max));
+  margin-inline: auto;
+  border: var(--border-width) solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--fill-soft);
+  color: var(--muted);
+}
+
+.np__text {
+  --stack-space: var(--s-3xs);
+
+  inline-size: 100%;
+}
+
+.np__title {
+  overflow: hidden;
+  font-size: var(--t-lg);
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.np__artist {
+  min-block-size: var(--s-md);
+  color: var(--muted);
+  font-size: var(--t-md);
+}
+
+.np__volume {
+  inline-size: 100%;
+}
+
+/* Steuer-Reihe [-] [===Segbar===] [+] [mute] — bewusst nicht umbrechend. */
+.np__vol-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+  inline-size: 100%;
+}
