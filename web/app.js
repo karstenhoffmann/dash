@@ -79,7 +79,7 @@ function App() {
     ${
       view === 'now'
         ? html`<${NowPlaying} group=${active} actions=${actions} />`
-        : html`<div class="cover__center np stack">
+        : html`<div class="np">
             <p>${labelFor(view)}</p>
             <small>kommt als Nächstes</small>
           </div>`

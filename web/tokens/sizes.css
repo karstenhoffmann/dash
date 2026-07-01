@@ -23,5 +23,11 @@
   --grid-min: 9rem; /* 144px — Default-Mindestspalte (Grid auto-fit) */
   --gutter: var(--s-sm); /* Standard-Außenabstand */
   --cover-max: 22rem; /* 352px — max. Kantenlänge des Now-Playing-Covers */
+  --cover-size: min(
+    70vw,
+    var(--cover-max)
+  ); /* Wunsch-Kantenlänge; schrumpft per Flex bei wenig Höhe */
+
   --segbar-h: 2rem; /* 32px — Höhe der Tipp-Lautstärkeleiste (Tippzone) */
+  --hairline: 1px; /* dünnste sichtbare Linie (z. B. Segbar-Ticks) */
 }

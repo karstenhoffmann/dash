@@ -12,3 +12,4 @@ Verbindliche Entscheidungen. Abweichung nur per neuem/superseding ADR — nie al
 | [0006](0006-js-schicht-preact-htm-light-dom.md) | JS-Schicht = Preact + htm, Light DOM, no-build | Accepted |
 | [0007](0007-tokens-governed-frozen.md) | Tokens geschlossen, eingefroren, ADR-gated | Accepted |
 | [0008](0008-no-build-start-guardrails-ab-tag-1.md) | No-build-Start; Guardrails strikt ab Tag 1 | Accepted |
+| [0009](0009-dynamische-werte-inline-custom-properties.md) | Dynamische Werte über Inline-Custom-Properties | Accepted |

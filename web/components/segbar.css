@@ -1,19 +1,31 @@
-/* SegBar — Lautstärke in 5%-Segmenten; ganze Leiste antippen setzt den Wert (DESIGN §6). */
+/* SegBar — Lautstärke als ruhige gefüllte Spur mit 5%-Ticks; ganze Leiste antippen
+ * setzt den Wert (DESIGN §6). Füllung = Datenwert via --seg-fill (ADR-0009). */
 .segbar {
-  display: flex;
-  align-items: stretch;
-  gap: var(--s-3xs);
+  position: relative;
   inline-size: 100%;
   block-size: var(--segbar-h);
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  overflow: hidden;
   cursor: pointer;
 }
 
-.segbar__seg {
-  flex: 1;
-  background: var(--line);
-  border-radius: var(--radius-sm);
+.segbar__fill {
+  block-size: 100%;
+  inline-size: var(--seg-fill, 0%);
+  background: var(--ink);
 }
 
-.segbar__seg.is-on {
-  background: var(--ink);
+/* 5%-Segmentierung: dünne Trennlinien in Seitenfarbe über Spur + Füllung. */
+.segbar__ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(5% - var(--hairline)),
+    var(--page) calc(5% - var(--hairline)),
+    var(--page) 5%
+  );
 }

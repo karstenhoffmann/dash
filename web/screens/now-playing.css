@@ -1,18 +1,37 @@
 /* Now Playing — Hub-Layout (Komposition; nur Maße/Token, kein neues Skin).
- * Zentrierte Spalte auf der echten Mittelachse: KEIN Überladen mit der Center-Primitive
- * (deren Gutter versetzte den Inhalt im Flex-Kontext). Zentrierung hier an einer Stelle.
+ * Muster „feste Chrome + flexible Mitte" (ADR-…): .np ist die flexible Mitte,
+ * füllt den Raum zwischen App-/Tab-Bar und zentriert vertikal. Zentrierte Spalte
+ * auf der echten Mittelachse (kein Überladen der Center-Primitive).
  */
 .np {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: var(--s-md);
+  min-block-size: 0;
   inline-size: 100%;
   max-inline-size: var(--app-max);
   margin-inline: auto;
+  overflow: hidden; /* Restüberlauf bleibt in der Mitte (kein Spill auf App-/Tab-Bar) */
   text-align: center;
 }
 
+/* Nur das Cover schrumpft (Controls bleiben unangetastet). */
+.np__text,
+.np__transport,
+.np__volume {
+  flex: none;
+}
+
+/* Cover nimmt den übrigen vertikalen Platz, bleibt quadratisch, gedeckelt;
+ * schrumpft im Querformat automatisch (flex-shrink) → nie Überlauf. */
 .np__cover {
-  inline-size: min(70vw, var(--cover-max));
-  margin-inline: auto;
+  flex: 0 1 auto;
+  block-size: var(--cover-size);
+  min-block-size: 0;
+  aspect-ratio: 1;
   border: var(--border-width) solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--fill-soft);
@@ -44,10 +63,7 @@
   inline-size: 100%;
 }
 
-/* Steuer-Reihe [-] [===Segbar===] [+] [mute] — bewusst nicht umbrechend. */
-.np__vol-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s-xs);
-  inline-size: 100%;
+/* Ausgewogene Steuer-Reihe: Segbar oben (volle Breite), darunter zentriert [− mute +]. */
+.np__vol-controls {
+  --cluster-space: var(--s-lg);
 }

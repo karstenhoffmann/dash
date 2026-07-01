@@ -21,7 +21,7 @@ Pflicht: [`DESIGN.md`](docs/DESIGN.md) (Grundgesetze, Screens, Flows, Edge Cases
 
 ## Non-negotiables (mechanisch geprüft, wo möglich)
 1. **Tokens zuerst. Nur Primitive fürs Layout. Skin zuletzt.**
-2. **KEINE Magic-Numbers.** Kein rohes `px`/`clamp()` außerhalb der Scale-Tokens, kein Inline-Style, kein per-View-CSS. → **stylelint erzwingt** (CI rot bei jedem Nicht-Token-Wert).
+2. **KEINE Magic-Numbers.** Kein rohes `px`/`clamp()` außerhalb der Scale-Tokens, kein per-View-CSS, keine Inline-Style-**Deklarationen** (`style="color/width:…"`). → **stylelint erzwingt** (CI rot bei jedem Nicht-Token-Wert). Ausnahme: **dynamische Daten** als Inline-**Custom-Property** (`style=${{'--x': …}}`), siehe [ADR-0009](docs/adr/0009-dynamische-werte-inline-custom-properties.md).
 3. **Tokens sind leicht zu *lesen*, bewusst schwer zu *erweitern*.** Neuer Token **nur per ADR**. Ein kleines, geschlossenes Set ist der Anti-Drift-Anker — nicht „schnell einen Wert dazu". (Governance schlägt Token-Quelle.)
 4. **UI spricht nur das `Backend`-Interface** — nie SoCo/HA direkt. Eigene Konzepte (Szenen/Namen/Schnellquellen) backend-agnostisch über **Raum-Slugs**.
 5. **Neue Screens = Komposition** aus Primitiven + Komponenten-Katalog. Neue Werte **nur als Token** (per ADR).

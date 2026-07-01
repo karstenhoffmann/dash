@@ -1,14 +1,14 @@
 import { html } from 'htm/preact';
 
-const SEGMENTS = 20; // 5%-Schritte
+const STEP = 5; // 5%-Raster
 
-/** Tipp-Lautstärkeleiste: ganze Leiste antippen → rastet auf 5% (DESIGN §6). */
+/** Tipp-Lautstärkeleiste: ganze Leiste antippen → rastet auf 5% (DESIGN §6).
+ * Füllung reist als Inline-Custom-Property (Datenkanal, ADR-0009). */
 export function SegBar({ value = 0, onSet }) {
-  const filled = Math.round(value / 5);
   const pick = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const frac = (e.clientX - r.left) / r.width;
-    const level = Math.max(0, Math.min(100, Math.round(frac * SEGMENTS) * 5));
+    const level = Math.max(0, Math.min(100, Math.round((frac * 100) / STEP) * STEP));
     onSet?.(level);
   };
   return html`<div
@@ -20,9 +20,7 @@ export function SegBar({ value = 0, onSet }) {
     aria-label="Gruppen-Lautstärke"
     onClick=${pick}
   >
-    ${Array.from(
-      { length: SEGMENTS },
-      (_, i) => html`<span class="segbar__seg ${i < filled ? 'is-on' : ''}"></span>`
-    )}
+    <div class="segbar__fill" style=${{ '--seg-fill': `${value}%` }}></div>
+    <div class="segbar__ticks"></div>
   </div>`;
 }

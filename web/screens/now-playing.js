@@ -15,7 +15,7 @@ function Cover({ artUrl }) {
 
 export function NowPlaying({ group, actions }) {
   if (!group) {
-    return html`<div class="cover__center np stack">
+    return html`<div class="np">
       <p>Nichts läuft.</p>
       <small>Wähle eine Quelle oder Szene.</small>
     </div>`;
@@ -24,7 +24,7 @@ export function NowPlaying({ group, actions }) {
   const now = group.now || {};
   const playing = group.state === 'playing';
 
-  return html`<div class="cover__center np stack">
+  return html`<div class="np">
     <${Cover} artUrl=${now.art_url} />
 
     <div class="stack np__text">
@@ -45,15 +45,28 @@ export function NowPlaying({ group, actions }) {
     </div>
 
     <div class="stack np__volume">
-      <div class="np__vol-row">
-        <${IconButton} icon="minus" label="Leiser" onClick=${() => actions.volumeRel(-VOL_STEP)} />
-        <${SegBar} value=${group.volume} onSet=${actions.setVolume} />
-        <${IconButton} icon="plus" label="Lauter" onClick=${() => actions.volumeRel(VOL_STEP)} />
+      <${SegBar} value=${group.volume} onSet=${actions.setVolume} />
+      <div class="cluster cluster--center np__vol-controls">
+        <${IconButton}
+          icon="minus"
+          size="lg"
+          variant="iconbtn--plain"
+          label="Leiser"
+          onClick=${() => actions.volumeRel(-VOL_STEP)}
+        />
         <${IconButton}
           icon=${group.mute ? 'volume-x' : 'volume-2'}
+          size="lg"
           variant="iconbtn--plain"
           label=${group.mute ? 'Ton an' : 'Stumm'}
           onClick=${actions.toggleMute}
+        />
+        <${IconButton}
+          icon="plus"
+          size="lg"
+          variant="iconbtn--plain"
+          label="Lauter"
+          onClick=${() => actions.volumeRel(VOL_STEP)}
         />
       </div>
     </div>

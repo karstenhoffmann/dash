@@ -34,6 +34,14 @@ app.add_middleware(LanAuthMiddleware, settings=settings)
 register_login(app, settings)
 
 
+@app.middleware("http")
+async def revalidate(request, call_next):
+    # LAN-only, kleine Dateien: immer revalidieren (ETag) → nie stale Assets.
+    resp = await call_next(request)
+    resp.headers.setdefault("Cache-Control", "no-cache")
+    return resp
+
+
 def _call(fn, *args):
     """Backend-Aufruf → HTTP-Fehler übersetzen. Blockierendes SoCo läuft im Threadpool."""
     try:
