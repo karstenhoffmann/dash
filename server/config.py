@@ -3,7 +3,25 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+# Bekannte Anlage: Raum-Slug → feste DHCP-IP (Seed, kein Multicast nötig).
+# Override per ENV DASH_SOCO_ROOMS="wohn=192.168.0.157,bad=192.168.0.204,…".
+DEFAULT_ROOMS = {
+    "wohn": "192.168.0.157",
+    "spielzimmer": "192.168.0.127",
+    "bad": "192.168.0.204",
+    "kueche": "192.168.0.91",
+    "schlaf": "192.168.0.236",
+}
+# Anzeige-Labels (Slug → UI-Name). Override per ENV DASH_SOCO_DISPLAY.
+DEFAULT_DISPLAY = {
+    "wohn": "Wohn",
+    "spielzimmer": "Spielzimmer",
+    "bad": "Bad",
+    "kueche": "Küche",
+    "schlaf": "Schlaf",
+}
 
 
 def _csv(name: str) -> list[str]:
@@ -11,10 +29,21 @@ def _csv(name: str) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _pairs(name: str) -> dict[str, str]:
+    """Parst 'a=1,b=2' → {'a':'1','b':'2'} (leer → {})."""
+    out: dict[str, str] = {}
+    for item in _csv(name):
+        if "=" in item:
+            k, v = item.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
+
+
 @dataclass
 class Settings:
     backend: str = "soco"  # soco | ha
-    soco_seed_ips: list[str] | None = None  # feste Speaker-IPs (kein Multicast)
+    soco_rooms: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_ROOMS))
+    soco_display: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_DISPLAY))
     ha_url: str | None = None
     ha_token: str | None = None
 
@@ -26,7 +55,8 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             backend=os.environ.get("DASH_BACKEND", "soco"),
-            soco_seed_ips=_csv("DASH_SOCO_SEED_IPS"),
+            soco_rooms=_pairs("DASH_SOCO_ROOMS") or dict(DEFAULT_ROOMS),
+            soco_display=_pairs("DASH_SOCO_DISPLAY") or dict(DEFAULT_DISPLAY),
             ha_url=os.environ.get("DASH_HA_URL") or None,
             ha_token=os.environ.get("DASH_HA_TOKEN") or None,
             ip_whitelist=_csv("DASH_IP_WHITELIST"),

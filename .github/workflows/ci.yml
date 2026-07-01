@@ -21,15 +21,17 @@ jobs:
       - name: prettier (Format-Check)
         run: npm run format:check
 
-  backend-smoke:
-    name: Backend importiert + bootet
+  backend:
+    name: Backend — Tests + Boot/Routen-Smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install server deps
-        run: pip install -r server/requirements.txt
+      - name: Install server deps (inkl. Test)
+        run: pip install -r server/requirements-dev.txt
+      - name: pytest (Adapter-Mapping, hardware-frei)
+        run: python -m pytest -q
       - name: Smoke (App importierbar, Routen registriert)
         run: python -m server.smoke

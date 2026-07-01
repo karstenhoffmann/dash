@@ -2,8 +2,8 @@
 
 Kommt mit Hue („Licht-Hebel"): HA steuert Sonos *und* Hue über dieselbe API. Dann
 abonniert dieser Adapter den HA-WebSocket (echtes Push) und mappt HA-Entities auf
-unser Domänenmodell (entity_id ↔ Raum-Slug, volume_level 0–1 ↔ 0–100). HA ist
-async-first → hier darf/ soll async genutzt werden (STACK-FINDINGS §2.4).
+unser Domänenmodell (entity_id ↔ Raum-Slug, volume_level 0–1 ↔ 0–100, `group_members`
+→ Group). HA ist async-first → hier darf/soll async genutzt werden (STACK-FINDINGS §2.4).
 """
 
 from __future__ import annotations
@@ -34,10 +34,19 @@ class HaBackend:
     def previous(self, room: str) -> None:
         raise NotImplementedError
 
-    def set_volume(self, room: str, level: int) -> None:
+    def set_group_volume(self, room: str, level: int) -> None:
         raise NotImplementedError
 
-    def set_mute(self, room: str, on: bool) -> None:
+    def set_group_volume_rel(self, room: str, delta: int) -> None:
+        raise NotImplementedError
+
+    def set_group_mute(self, room: str, on: bool) -> None:
+        raise NotImplementedError
+
+    def set_room_volume(self, room: str, level: int) -> None:
+        raise NotImplementedError
+
+    def set_room_mute(self, room: str, on: bool) -> None:
         raise NotImplementedError
 
     def group(self, room: str, into_room: str) -> None:

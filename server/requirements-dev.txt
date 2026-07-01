@@ -1,0 +1,3 @@
+# Dev/Test-Abhängigkeiten (nicht im Laufzeit-Image).
+-r requirements.txt
+pytest>=8,<9
