@@ -9,7 +9,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--s-md);
+  gap: var(--s-xl); /* GROSSER Abstand ZWISCHEN den Gruppen (Identität ↔ Steuerung) */
   min-block-size: 0;
   inline-size: 100%;
   max-inline-size: var(--app-max);
@@ -18,11 +18,25 @@
   text-align: center;
 }
 
-/* Nur das Cover schrumpft (Controls bleiben unangetastet). */
-.np__text,
-.np__transport,
-.np__volume {
-  flex: none;
+/* Gruppe „Was läuft": Cover + Titel als EINE Einheit (enger Abstand innen). */
+.np__identity {
+  display: flex;
+  flex: 0 1 auto; /* schrumpfbar (über das Cover) */
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-sm);
+  min-block-size: 0;
+  inline-size: 100%;
+}
+
+/* Gruppe „Steuerung": Transport + Lautstärke (mittlerer Abstand innen). */
+.np__controls {
+  display: flex;
+  flex: none; /* Controls bleiben unangetastet; nur das Cover schrumpft */
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-lg);
+  inline-size: 100%;
 }
 
 /* Cover nimmt den übrigen vertikalen Platz, bleibt quadratisch, gedeckelt;
@@ -39,8 +53,9 @@
 }
 
 .np__text {
-  --stack-space: var(--s-3xs);
+  --stack-space: var(--s-3xs); /* Titel/Artist = engste Kopplung (eine Zeile-Gruppe) */
 
+  flex: none;
   inline-size: 100%;
 }
 

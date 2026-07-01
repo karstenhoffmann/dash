@@ -25,6 +25,14 @@ Portrait **und** Landscape sind eigene, durchdachte Layouts (DESIGN §3) — nic
 - **Touch:** Ziele ≥ `var(--hit)`; nichts pfriemelig.
 - **Ruhe/glanceable:** keine „zappeligen" Muster (z. B. viele dünne Elemente auf schmaler Breite).
 
+## 3b. Semantik & Gestalt (über der Geometrie)
+Nicht nur „passt es rein", sondern **liest es sich als durchdachte Komposition**:
+- **Gruppierung durch Nähe:** logisch/semantisch Zusammengehöriges steht sichtbar zusammen (kleiner Abstand *innerhalb*, größerer Abstand *zwischen* Gruppen — Refactoring-UI). Uniformer Abstand über alles = „gestacked", nicht gruppiert → Fehler.
+- **Abgrenzung:** verschiedene Konzepte/Gruppen sind klar getrennt — bevorzugt durch **Weißraum/Nähe**, sonst durch dezente Trennlinie (`--hairline`/`--line`) oder Fläche (`--fill-soft`). Kein Abdunkeln (DESIGN).
+- **Hierarchie:** Wichtiges ist visuell dominant (Größe/Gewicht/Kontrast), Sekundäres tritt zurück — nicht alles gleich laut.
+- **Harmonie:** das Gesamtbild wirkt ruhig und intentional, nicht „zusammengewürfelt/aneinandergeklatscht". Abstände stammen aus **einer** Skala (gestufte Beziehungen), nicht aus Zufallswerten.
+- **Konsistenz:** gleiche Konzepte sehen überall gleich aus (ein Baustein, eine Sprache).
+
 ## 4. Fix-Disziplin (Anti-Drift — der eigentliche Punkt)
 Bei jedem Befund zuerst die Ebene bestimmen, dann **dort** fixen:
 - **Token** (Scale/Rhythmus/Maß falsch) → Token anpassen/ergänzen (nur per ADR, [ADR-0007](adr/0007-tokens-governed-frozen.md)).

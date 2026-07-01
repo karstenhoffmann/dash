@@ -1,6 +1,7 @@
 /* AppBar — Gruppenname (+ Umschalter) links, Uhr rechts. Sitzt oben in der Cover-Shell. */
 .appbar {
   flex: none;
+  flex-wrap: nowrap; /* Uhr bleibt rechts oben; langer Name kürzt (ellipsis), statt umzubrechen */
 }
 
 .appbar__title {
