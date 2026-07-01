@@ -79,7 +79,7 @@ function App() {
     ${
       view === 'now'
         ? html`<${NowPlaying} group=${active} actions=${actions} />`
-        : html`<div class="cover__center center center--intrinsic stack">
+        : html`<div class="cover__center np stack">
             <p>${labelFor(view)}</p>
             <small>kommt als Nächstes</small>
           </div>`

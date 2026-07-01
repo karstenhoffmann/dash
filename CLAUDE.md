@@ -32,6 +32,7 @@ Pflicht: [`DESIGN.md`](docs/DESIGN.md) (Grundgesetze, Screens, Flows, Edge Cases
 
 ## Definition of Done (pro Änderung)
 Komponiert aus Primitiven/Komponenten · nutzt nur Tokens · **keine neuen Magic-Numbers** · `stylelint`+`prettier` grün · App bootet · Routen geprüft · ggf. ADR/Exception dokumentiert.
+**Bei sichtbaren Änderungen zusätzlich:** Sichttest über alle vier Viewports (sehen **und** messen) nach [`docs/VISUAL-QA.md`](docs/VISUAL-QA.md) — Befunde **systemisch** fixen (Token/Primitiv/Komponente), nie per-View-Quickfix.
 
 ## Arbeitsweise
 Dev am MacBook, Deploy auf Mele (Docker) später. `git` = Meilensteine, `main` getrackt auf GitHub (`origin`). Branch für Feature-Arbeit, dann Merge nach `main`.

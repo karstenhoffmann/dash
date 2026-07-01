@@ -1,6 +1,12 @@
-/* Now Playing — Hub-Layout (Komposition; nur Maße/Token, kein neues Skin). */
+/* Now Playing — Hub-Layout (Komposition; nur Maße/Token, kein neues Skin).
+ * Zentrierte Spalte auf der echten Mittelachse: KEIN Überladen mit der Center-Primitive
+ * (deren Gutter versetzte den Inhalt im Flex-Kontext). Zentrierung hier an einer Stelle.
+ */
 .np {
+  align-items: center;
   inline-size: 100%;
+  max-inline-size: var(--app-max);
+  margin-inline: auto;
   text-align: center;
 }
 

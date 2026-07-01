@@ -15,7 +15,7 @@ function Cover({ artUrl }) {
 
 export function NowPlaying({ group, actions }) {
   if (!group) {
-    return html`<div class="cover__center center center--intrinsic stack">
+    return html`<div class="cover__center np stack">
       <p>Nichts läuft.</p>
       <small>Wähle eine Quelle oder Szene.</small>
     </div>`;
@@ -24,7 +24,7 @@ export function NowPlaying({ group, actions }) {
   const now = group.now || {};
   const playing = group.state === 'playing';
 
-  return html`<div class="cover__center center center--intrinsic stack np">
+  return html`<div class="cover__center np stack">
     <${Cover} artUrl=${now.art_url} />
 
     <div class="stack np__text">
